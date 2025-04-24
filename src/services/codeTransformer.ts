@@ -34,3 +34,26 @@ export function getTransformationsByCategory(category: string): TransformationRu
 export function getTransformationsByComplexity(complexity: 'simple' | 'medium' | 'complex'): TransformationRule[] {
   return allTransformationRules.filter(rule => rule.complexity === complexity);
 }
+
+export function getTransformationStats(sourceCode: string): {
+  totalTransformations: number;
+  appliedTransformations: string[];
+  categoryCounts: Record<string, number>;
+} {
+  const { appliedTransformations } = transformCode(sourceCode);
+  
+  // Count transformations by category
+  const categoryCounts: Record<string, number> = {};
+  appliedTransformations.forEach(desc => {
+    const rule = allTransformationRules.find(r => r.description === desc);
+    if (rule) {
+      categoryCounts[rule.category] = (categoryCounts[rule.category] || 0) + 1;
+    }
+  });
+  
+  return {
+    totalTransformations: appliedTransformations.length,
+    appliedTransformations,
+    categoryCounts
+  };
+}

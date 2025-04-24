@@ -1,7 +1,7 @@
 
 import { analyzeNextJsRoutes } from './routeConverter';
 import { analyzeDependencies, checkVersionCompatibility } from './dependencyManager';
-import { transformCode, getTransformationStats } from './codeTransformer';
+import { transformCode } from './codeTransformer';
 import { analyzeMiddlewareFiles, transformMiddleware } from './middlewareTransformer';
 import { analyzeCodeStructure } from './astTransformer';
 import { ConversionOptions } from '@/types/conversion';
@@ -590,9 +590,9 @@ export async function validateConversionSystem(): Promise<{
     // RouteConverter ellenőrzése
     const routeConverterValid = typeof analyzeNextJsRoutes === 'function';
     if (!routeConverterValid) {
-      components[0].status = 'error';
       components[0] = { 
         ...components[0],
+        status: 'error' as const,
         message: 'The routeConverter component is not available or is faulty.'
       };
       issues.push('RouteConverter validation error');
@@ -601,9 +601,9 @@ export async function validateConversionSystem(): Promise<{
     // CodeTransformer ellenőrzése
     const codeTransformerValid = typeof transformCode === 'function';
     if (!codeTransformerValid) {
-      components[1].status = 'error';
       components[1] = { 
         ...components[1],
+        status: 'error' as const,
         message: 'The codeTransformer component is not available or is faulty.'
       };
       issues.push('CodeTransformer validation error');
@@ -612,9 +612,9 @@ export async function validateConversionSystem(): Promise<{
     // AstTransformer ellenőrzése
     const astTransformerValid = typeof analyzeCodeStructure === 'function';
     if (!astTransformerValid) {
-      components[2].status = 'error';
       components[2] = { 
         ...components[2],
+        status: 'error' as const,
         message: 'The astTransformer component is not available or is faulty.'
       };
       issues.push('AstTransformer validation error');
@@ -623,9 +623,9 @@ export async function validateConversionSystem(): Promise<{
     // MiddlewareTransformer ellenőrzése
     const middlewareTransformerValid = typeof transformMiddleware === 'function';
     if (!middlewareTransformerValid) {
-      components[3].status = 'error';
       components[3] = { 
         ...components[3],
+        status: 'error' as const,
         message: 'The middlewareTransformer component is not available or is faulty.'
       };
       issues.push('MiddlewareTransformer validation error');

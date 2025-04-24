@@ -1,5 +1,5 @@
 
-import { TransformationRule } from '../types/transformerTypes';
+import { TransformationRule } from '@/types/transformerTypes';
 
 export const componentTransformationRules: TransformationRule[] = [
   {

@@ -1,31 +1,30 @@
 
-import { ValidationResult } from '@/types/analyzer';
+import { ValidationResult, AnalyzerComponent, AnalyzerComponentStatus } from '@/types/analyzer';
 import { analyzeNextJsRoutes } from '../routeConverter';
 import { transformCode } from '../codeTransformer';
 
 export async function validateConversionSystem(): Promise<ValidationResult> {
-  const components = [
-    { name: 'routeConverter', status: 'ok' as const },
-    { name: 'codeTransformer', status: 'ok' as const },
-    { name: 'apiRouteTransformer', status: 'ok' as const }
+  const components: AnalyzerComponent[] = [
+    { name: 'routeConverter', status: 'ok' },
+    { name: 'codeTransformer', status: 'ok' },
+    { name: 'apiRouteTransformer', status: 'ok' }
   ];
   
   const issues: string[] = [];
 
-  // Check components
   try {
-    // RouteConverter check
     const routeConverterValid = typeof analyzeNextJsRoutes === 'function';
     if (!routeConverterValid) {
-      components[0].status = 'error' as const;
-      issues.push('RouteConverter validation error');
+      components[0].status = 'error';
+      components[0].message = 'RouteConverter validation warning';
+      issues.push('RouteConverter validation warning');
     }
     
-    // CodeTransformer check
     const codeTransformerValid = typeof transformCode === 'function';
     if (!codeTransformerValid) {
-      components[1].status = 'error' as const;
-      issues.push('CodeTransformer validation error');
+      components[1].status = 'error';
+      components[1].message = 'CodeTransformer validation warning';
+      issues.push('CodeTransformer validation warning');
     }
     
   } catch (error) {

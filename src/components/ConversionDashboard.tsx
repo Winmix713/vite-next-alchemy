@@ -5,12 +5,20 @@ import ProjectStats from "./dashboard/ProjectStats";
 import ConversionOptions from "./dashboard/ConversionOptions";
 import CodePreviewTabs from "./dashboard/CodePreviewTabs";
 import ConversionProgress from "./dashboard/ConversionProgress";
-import { ConversionOptions as ConversionOptionsType } from "@/types/conversion";
-import { ConversionExecutor } from "@/services/conversionExecutor";
+import ConversionResult from "./dashboard/results/ConversionResult";
 import { useConversion } from "@/context/ConversionContext";
+import { ConversionExecutor } from "@/services/conversionExecutor";
 
 interface ConversionDashboardProps {
-  projectData: any;
+  projectData: {
+    files: File[];
+    totalFiles: number;
+    nextJsComponents: number;
+    apiRoutes: number;
+    dataFetchingMethods: number;
+    complexityScore: number;
+    packageJson?: Record<string, any>;
+  };
   onStartConversion: () => void;
   isConverting: boolean;
 }
@@ -20,41 +28,16 @@ const ConversionDashboard = ({
   onStartConversion: parentOnStartConversion,
   isConverting: parentIsConverting 
 }: ConversionDashboardProps) => {
-  const { state, dispatch } = useConversion();
-  const [options, setOptions] = useState<ConversionOptionsType>({
-    useReactRouter: true,
-    convertApiRoutes: true,
-    transformDataFetching: true,
-    replaceComponents: true,
-    updateDependencies: true,
-    preserveTypeScript: true,
-    handleMiddleware: true
-  });
-  const [isConverting, setIsConverting] = useState(false);
+  const { state, dispatch, toggleOption } = useConversion();
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState("");
   
   // Use parent state if provided, otherwise use local state
-  const conversionInProgress = parentIsConverting || isConverting;
-
-  const toggleOption = (option: keyof ConversionOptionsType) => {
-    setOptions(prev => {
-      const newOptions = { ...prev, [option]: !prev[option] };
-      
-      // Update the context when options change
-      dispatch({ 
-        type: "SET_CONVERSION_OPTIONS", 
-        payload: newOptions 
-      });
-      
-      return newOptions;
-    });
-  };
+  const conversionInProgress = parentIsConverting || state.isConverting;
 
   const handleStartConversion = async () => {
     try {
       // Update local state
-      setIsConverting(true);
       setProgress(0);
       setProgressMessage("Starting conversion...");
       
@@ -63,16 +46,14 @@ const ConversionDashboard = ({
       
       // Update context state
       dispatch({ type: "SET_IS_CONVERTING", payload: true });
-      dispatch({ type: "SET_CONVERSION_OPTIONS", payload: options });
       
       toast.info("Starting Next.js to Vite conversion process...");
       
-      if (projectData && projectData.files && projectData.packageJson) {
+      if (projectData && projectData.files) {
         // Create conversion executor with the files and options
         const executor = new ConversionExecutor(
           projectData.files,
-          projectData.packageJson,
-          options
+          state.conversionOptions
         );
         
         // Set up progress callback
@@ -104,31 +85,43 @@ const ConversionDashboard = ({
         }
       } else {
         toast.error("Project data is missing. Please upload a valid Next.js project.");
+        dispatch({
+          type: "SET_CONVERSION_ERROR",
+          payload: "Project data is missing. Please upload a valid Next.js project."
+        });
       }
     } catch (error) {
-      toast.error(`Error during conversion: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast.error(`Error during conversion: ${errorMessage}`);
       dispatch({ 
         type: "SET_CONVERSION_ERROR", 
-        payload: error instanceof Error ? error.message : String(error)
+        payload: errorMessage
       });
     } finally {
-      setIsConverting(false);
       // Update context state
       dispatch({ type: "SET_IS_CONVERTING", payload: false });
     }
   };
 
-  // When component mounts, update the context with initial options
+  // When component mounts, update the context with project data
   useEffect(() => {
-    dispatch({ type: "SET_CONVERSION_OPTIONS", payload: options });
-  }, []);
+    if (projectData && projectData.files) {
+      dispatch({ 
+        type: "SET_PROJECT_DATA", 
+        payload: { 
+          files: projectData.files,
+          packageJson: projectData.packageJson
+        }
+      });
+    }
+  }, [projectData, dispatch]);
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between gap-6">
         <ProjectStats projectData={projectData} />
         <ConversionOptions 
-          options={options}
+          options={state.conversionOptions}
           onOptionToggle={toggleOption}
           onStartConversion={handleStartConversion}
           isConverting={conversionInProgress}
@@ -142,6 +135,10 @@ const ConversionDashboard = ({
           currentProgress={progress} 
           currentMessage={progressMessage}
         />
+      )}
+      
+      {state.conversionResult && !conversionInProgress && (
+        <ConversionResult result={state.conversionResult} />
       )}
     </div>
   );

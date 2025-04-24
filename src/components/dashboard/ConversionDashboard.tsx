@@ -9,7 +9,15 @@ import { useConversion } from "@/context/ConversionContext";
 import { useConversionHandler } from "@/hooks/useConversionHandler";
 
 interface ConversionDashboardProps {
-  projectData: any;
+  projectData: {
+    files: File[];
+    totalFiles: number;
+    nextJsComponents: number;
+    apiRoutes: number;
+    dataFetchingMethods: number;
+    complexityScore: number;
+    packageJson?: Record<string, any>;
+  };
   onStartConversion: () => void;
   isConverting: boolean;
 }
@@ -34,7 +42,13 @@ const ConversionDashboard = ({
   // When component mounts, update the context with the project data
   useEffect(() => {
     if (projectData) {
-      dispatch({ type: "SET_PROJECT_DATA", payload: projectData });
+      dispatch({ 
+        type: "SET_PROJECT_DATA", 
+        payload: { 
+          files: projectData.files,
+          packageJson: projectData.packageJson
+        } 
+      });
     }
   }, [projectData, dispatch]);
 
@@ -59,8 +73,8 @@ const ConversionDashboard = ({
         />
       )}
       
-      {conversionResult && !conversionInProgress && (
-        <ConversionResult result={conversionResult} />
+      {state.conversionResult && !conversionInProgress && (
+        <ConversionResult result={state.conversionResult} />
       )}
     </div>
   );

@@ -1,64 +1,112 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useCallback } from 'react';
+import { 
+  ConversionState, 
+  ConversionAction, 
+  ConversionContextType,
+  ConversionOptions
+} from '@/types/conversion';
 
-type ConversionState = {
-  originalCode: string;
-  convertedCode: string;
-  conversionOptions: {
-    useReactRouter: boolean;
-    convertApiRoutes: boolean;
-    transformDataFetching: boolean;
-    replaceComponents: boolean;
-    updateDependencies: boolean;
-    preserveTypeScript: boolean;
-  };
+const defaultConversionOptions: ConversionOptions = {
+  useReactRouter: true,
+  convertApiRoutes: true,
+  transformDataFetching: true,
+  replaceComponents: true,
+  updateDependencies: true,
+  preserveTypeScript: true,
+  handleMiddleware: true
 };
 
-type ConversionContextType = {
-  state: ConversionState;
-  updateOriginalCode: (code: string) => void;
-  updateConvertedCode: (code: string) => void;
-  toggleOption: (option: keyof ConversionState['conversionOptions']) => void;
-};
-
-const defaultState: ConversionState = {
+const initialState: ConversionState = {
+  isConverting: false,
+  conversionOptions: defaultConversionOptions,
+  progress: 0,
+  message: '',
   originalCode: '',
   convertedCode: '',
-  conversionOptions: {
-    useReactRouter: true,
-    convertApiRoutes: true,
-    transformDataFetching: true,
-    replaceComponents: true,
-    updateDependencies: true,
-    preserveTypeScript: true,
-  },
+  conversionResult: null,
+  conversionError: null
 };
+
+function conversionReducer(state: ConversionState, action: ConversionAction): ConversionState {
+  switch (action.type) {
+    case 'SET_IS_CONVERTING':
+      return { ...state, isConverting: action.payload };
+    
+    case 'SET_CONVERSION_OPTIONS':
+      return { ...state, conversionOptions: action.payload };
+    
+    case 'SET_CONVERSION_PROGRESS':
+      return { 
+        ...state, 
+        progress: action.payload.progress, 
+        message: action.payload.message 
+      };
+    
+    case 'SET_PROJECT_DATA':
+      return { ...state, projectData: action.payload };
+    
+    case 'SET_ORIGINAL_CODE':
+      return { ...state, originalCode: action.payload };
+    
+    case 'SET_CONVERTED_CODE':
+      return { ...state, convertedCode: action.payload };
+    
+    case 'SET_CONVERSION_RESULT':
+      return { 
+        ...state, 
+        conversionResult: action.payload.result,
+        convertedCode: action.payload.result.transformedCode,
+        conversionError: null
+      };
+    
+    case 'SET_CONVERSION_ERROR':
+      return { ...state, conversionError: action.payload, isConverting: false };
+    
+    default:
+      return state;
+  }
+}
 
 const ConversionContext = createContext<ConversionContextType | undefined>(undefined);
 
 export const ConversionProvider = ({ children }: { children: ReactNode }) => {
-  const [state, setState] = useState<ConversionState>(defaultState);
+  const [state, dispatch] = useReducer(conversionReducer, initialState);
 
-  const updateOriginalCode = (code: string) => {
-    setState(prevState => ({ ...prevState, originalCode: code }));
-  };
+  const toggleOption = useCallback((option: keyof ConversionOptions) => {
+    dispatch({
+      type: 'SET_CONVERSION_OPTIONS',
+      payload: {
+        ...state.conversionOptions,
+        [option]: !state.conversionOptions[option]
+      }
+    });
+  }, [state.conversionOptions]);
 
-  const updateConvertedCode = (code: string) => {
-    setState(prevState => ({ ...prevState, convertedCode: code }));
-  };
+  const updateOriginalCode = useCallback((code: string) => {
+    dispatch({
+      type: 'SET_ORIGINAL_CODE',
+      payload: code
+    });
+  }, []);
 
-  const toggleOption = (option: keyof ConversionState['conversionOptions']) => {
-    setState(prevState => ({
-      ...prevState,
-      conversionOptions: {
-        ...prevState.conversionOptions,
-        [option]: !prevState.conversionOptions[option],
-      },
-    }));
-  };
+  const updateConvertedCode = useCallback((code: string) => {
+    dispatch({
+      type: 'SET_CONVERTED_CODE',
+      payload: code
+    });
+  }, []);
 
   return (
-    <ConversionContext.Provider value={{ state, updateOriginalCode, updateConvertedCode, toggleOption }}>
+    <ConversionContext.Provider 
+      value={{ 
+        state, 
+        dispatch, 
+        toggleOption,
+        updateOriginalCode,
+        updateConvertedCode
+      }}
+    >
       {children}
     </ConversionContext.Provider>
   );
